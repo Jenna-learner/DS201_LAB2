@@ -1,0 +1,23 @@
+{
+  "model": "googlenet",
+  "data_root": "VinaFood21_256",
+  "pool": "avg",
+  "mode": "ft",
+  "no_aug": false,
+  "img_size": 64,
+  "epochs": 20,
+  "lr": 0.001,
+  "batch_size": 32,
+  "num_workers": 2,
+  "seed": 42,
+  "amp": true,
+  "run_name": "googlenet",
+  "out_dir": "runs",
+  "retrain": false,
+  "n_classes": 21,
+  "n_params": 411977,
+  "n_trainable": 411977,
+  "sec_per_epoch": 20.36863660812378,
+  "best_epoch": 20,
+  "best_val_f1": 0.49777726264346694
+}

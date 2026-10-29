@@ -1,0 +1,23 @@
+{
+  "model": "resnet50",
+  "data_root": "VinaFood21_256",
+  "pool": "avg",
+  "mode": "fe",
+  "no_aug": false,
+  "img_size": 224,
+  "epochs": 10,
+  "lr": 0.001,
+  "batch_size": 32,
+  "num_workers": 2,
+  "seed": 42,
+  "amp": true,
+  "run_name": "resnet50_fe",
+  "out_dir": "runs",
+  "retrain": false,
+  "n_classes": 21,
+  "n_params": 23551061,
+  "n_trainable": 43029,
+  "sec_per_epoch": 49.17190019289652,
+  "best_epoch": 10,
+  "best_val_f1": 0.7662561859302135
+}
