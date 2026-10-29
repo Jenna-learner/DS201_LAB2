@@ -7,7 +7,7 @@ Dataset: VinaFood21 (21 lớp món ăn Việt Nam)
 - Bài 3: ResNet-18 train từ đầu, có và không có augmentation
 - Bài 4: ResNet-50 pretrained (`microsoft/resnet-50`), feature extraction và fine-tuning
 
-Kết quả và nhận xét ở `Lab2_VinaFood21.ipynb`, bảng tổng hợp ở `results.md`.
+Kết quả và nhận xét ở `Lab2_23521117.ipynb`, bảng tổng hợp ở `results.md`.
 
 ## Các file
 
