@@ -15,9 +15,9 @@
   "out_dir": "runs",
   "retrain": false,
   "n_classes": 21,
-  "n_params": 339421,
-  "n_trainable": 339421,
-  "sec_per_epoch": 17.404869016848114,
-  "best_epoch": 15,
-  "best_val_f1": 0.37027770727818343
+  "n_params": 391261,
+  "n_trainable": 391261,
+  "sec_per_epoch": 16.382672661229183,
+  "best_epoch": 19,
+  "best_val_f1": 0.36760572804896485
 }
