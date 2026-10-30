@@ -3,7 +3,7 @@
 Dataset: VinaFood21 (21 lớp món ăn Việt Nam)
 
 - Bài 1: LeNet-5, chạy với AvgPool rồi đổi sang MaxPool
-- Bài 2: GoogLeNet rút gọn (4 Inception block, GAP)
+- Bài 2: GoogLeNet theo hình trong đề (9 Inception block, GAP), thêm BatchNorm sau mỗi conv
 - Bài 3: ResNet-18 train từ đầu, có và không có augmentation
 - Bài 4: ResNet-50 pretrained (`microsoft/resnet-50`), feature extraction và fine-tuning
 
