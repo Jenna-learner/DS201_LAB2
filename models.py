@@ -11,12 +11,12 @@ class LeNet5(nn.Module):
     def __init__(self, in_ch=3, img_size=64, num_classes=21, pool="avg"):
         super().__init__()
         Pool = nn.AvgPool2d if pool == "avg" else nn.MaxPool2d
-        self.c1 = nn.Conv2d(in_ch, 6, kernel_size=5)
+        self.c1 = nn.Conv2d(in_ch, 6, kernel_size=5, padding=2)    # pad 2 như hình, giữ nguyên kích thước
         self.s2 = Pool(2, 2)
         self.c3 = nn.Conv2d(6, 16, kernel_size=5)
         self.s4 = Pool(2, 2)
 
-        # tính số chiều sau flatten bằng 1 lần forward giả (64x64 -> 16*13*13 = 2704)
+        # tính số chiều sau flatten bằng 1 lần forward giả (64x64 -> 16*14*14 = 3136)
         with torch.no_grad():
             x = torch.zeros(1, in_ch, img_size, img_size)
             n_flat = self.s4(self.c3(self.s2(self.c1(x)))).numel()
@@ -35,53 +35,64 @@ class LeNet5(nn.Module):
 
 
 # Bài 2
+def conv_bn(in_ch, out_ch, k, stride=1, padding=0):
+    # conv -> BatchNorm -> ReLU, có BN rồi nên conv bỏ bias
+    return nn.Sequential(
+        nn.Conv2d(in_ch, out_ch, k, stride, padding, bias=False),
+        nn.BatchNorm2d(out_ch), nn.ReLU())
+
+
 class InceptionBlock(nn.Module):
-    # số channel ra = f1 + f3 + f5 + fp
+    # 4 nhánh như hình, số channel ra = f1 + f3 + f5 + fp
     def __init__(self, in_ch, f1, f3r, f3, f5r, f5, fp):
         super().__init__()
-        self.b1 = nn.Sequential(nn.Conv2d(in_ch, f1, 1), nn.ReLU())
-        self.b2 = nn.Sequential(
-            nn.Conv2d(in_ch, f3r, 1), nn.ReLU(),
-            nn.Conv2d(f3r, f3, 3, padding=1), nn.ReLU())
-        self.b3 = nn.Sequential(
-            nn.Conv2d(in_ch, f5r, 1), nn.ReLU(),
-            nn.Conv2d(f5r, f5, 5, padding=2), nn.ReLU())
-        self.b4 = nn.Sequential(
-            nn.MaxPool2d(3, stride=1, padding=1),
-            nn.Conv2d(in_ch, fp, 1), nn.ReLU())
+        self.b1 = conv_bn(in_ch, f1, 1)
+        self.b2 = nn.Sequential(conv_bn(in_ch, f3r, 1), conv_bn(f3r, f3, 3, padding=1))
+        self.b3 = nn.Sequential(conv_bn(in_ch, f5r, 1), conv_bn(f5r, f5, 5, padding=2))
+        self.b4 = nn.Sequential(nn.MaxPool2d(3, stride=1, padding=1), conv_bn(in_ch, fp, 1))
 
     def forward(self, x):
         return torch.cat([self.b1(x), self.b2(x), self.b3(x), self.b4(x)], dim=1)
 
 
 class GoogLeNet(nn.Module):
-    # bản rút gọn 4 block, số channel lấy khoảng 1/2 inception 3a, 3b, 4a, 4b của bản gốc
-    # ảnh 64x64 nên stem chỉ giảm 4 lần (64 -> 16)
+    # theo hình trong đề: 7x7 Conv -> MaxPool -> 1x1 Conv -> 3x3 Conv -> MaxPool
+    # -> 2 Inception -> MaxPool -> 5 Inception -> MaxPool -> 2 Inception -> GAP -> FC
+    # số channel lấy theo bản gốc (Szegedy et al. 2014), ảnh 64x64: 64 -> 16 -> 8 -> 4 -> 2 -> GAP
+    # mỗi conv có thêm BatchNorm (như GoogLeNet của torchvision) để mạng ~22 lớp train ổn định
     def __init__(self, num_classes=21):
         super().__init__()
-        self.stem = nn.Sequential(
-            nn.Conv2d(3, 64, 3, padding=1, bias=False), nn.BatchNorm2d(64), nn.ReLU(),
-            nn.MaxPool2d(3, stride=2, padding=1),                       # 32x32
-            nn.Conv2d(64, 64, 1, bias=False), nn.BatchNorm2d(64), nn.ReLU(),
-            nn.Conv2d(64, 96, 3, padding=1, bias=False), nn.BatchNorm2d(96), nn.ReLU(),
-            nn.MaxPool2d(3, stride=2, padding=1),                       # 16x16
-        )
-        self.inc3a = InceptionBlock(96, 32, 48, 64, 8, 16, 16)          # 128
-        self.inc3b = InceptionBlock(128, 64, 64, 96, 16, 48, 32)        # 240
-        self.pool = nn.MaxPool2d(3, stride=2, padding=1)                # 8x8
-        self.inc4a = InceptionBlock(240, 96, 48, 104, 8, 24, 32)        # 256
-        self.inc4b = InceptionBlock(256, 80, 56, 112, 12, 32, 32)       # 256
-        self.gap = nn.AdaptiveAvgPool2d(1)
-        self.dropout = nn.Dropout(0.4)
-        self.fc = nn.Linear(256, num_classes)
+        self.b1 = nn.Sequential(
+            conv_bn(3, 64, 7, stride=2, padding=3),
+            nn.MaxPool2d(3, stride=2, padding=1))
+        self.b2 = nn.Sequential(
+            conv_bn(64, 64, 1),
+            conv_bn(64, 192, 3, padding=1),
+            nn.MaxPool2d(3, stride=2, padding=1))
+        self.b3 = nn.Sequential(
+            InceptionBlock(192, 64, 96, 128, 16, 32, 32),               # 256
+            InceptionBlock(256, 128, 128, 192, 32, 96, 64),             # 480
+            nn.MaxPool2d(3, stride=2, padding=1))
+        self.b4 = nn.Sequential(
+            InceptionBlock(480, 192, 96, 208, 16, 48, 64),              # 512
+            InceptionBlock(512, 160, 112, 224, 24, 64, 64),             # 512
+            InceptionBlock(512, 128, 128, 256, 24, 64, 64),             # 512
+            InceptionBlock(512, 112, 144, 288, 32, 64, 64),             # 528
+            InceptionBlock(528, 256, 160, 320, 32, 128, 128),           # 832
+            nn.MaxPool2d(3, stride=2, padding=1))
+        self.b5 = nn.Sequential(
+            InceptionBlock(832, 256, 160, 320, 32, 128, 128),           # 832
+            InceptionBlock(832, 384, 192, 384, 48, 128, 128),           # 1024
+            nn.AdaptiveAvgPool2d(1), nn.Flatten())
+        self.fc = nn.Linear(1024, num_classes)
 
     def forward(self, x):
-        x = self.stem(x)
-        x = self.inc3b(self.inc3a(x))
-        x = self.pool(x)
-        x = self.inc4b(self.inc4a(x))
-        x = self.gap(x).flatten(1)
-        return self.fc(self.dropout(x))
+        x = self.b1(x)
+        x = self.b2(x)
+        x = self.b3(x)
+        x = self.b4(x)
+        x = self.b5(x)
+        return self.fc(x)
 
 
 # Bài 3

@@ -9,7 +9,7 @@ import pandas as pd
 RUNS = [
     ("lenet_avg", "LeNet-5 (AvgPool)"),
     ("lenet_max", "LeNet-5 (MaxPool)"),
-    ("googlenet", "GoogLeNet rút gọn"),
+    ("googlenet", "GoogLeNet"),
     ("resnet18_aug", "ResNet-18 từ đầu (có aug)"),
     ("resnet18_noaug", "ResNet-18 từ đầu (không aug)"),
     ("resnet50_fe", "ResNet-50 pretrained (feature extraction)"),
